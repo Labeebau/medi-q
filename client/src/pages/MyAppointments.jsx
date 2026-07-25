@@ -28,24 +28,31 @@ export default function MyAppointments() {
   const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
   const userId = savedUser?._id || '660000000000000000000000';
 
-  // Function to load appointments from backend
+  // Function to load appointments from backend + local session
   const fetchAppointments = async () => {
     setLoading(true);
     setError('');
+
+    const localApps = JSON.parse(localStorage.getItem('local_appointments') || '[]');
+
     try {
       // Call GET /api/appointments/:userId
       const res = await getAppointments(userId);
       if (res.success && Array.isArray(res.data)) {
-        setAppointments(res.data);
+        // Merge backend appointments + local session appointments
+        const combined = [...localApps, ...res.data];
+        // Unique by _id
+        const unique = Array.from(new Map(combined.map((item) => [item._id, item])).values());
+        setAppointments(unique);
       } else {
-        setAppointments([]);
+        setAppointments(localApps);
       }
       setLoading(false);
     } catch (err) {
       setLoading(false);
-      console.warn('Backend server not connected yet, displaying fallback demo list:', err.message);
-      // Fallback demo data if backend connection fails
-      setAppointments([
+      console.warn('Backend server connecting, using session list:', err.message);
+      // Fallback demo data + local session data
+      const defaultDemo = [
         {
           _id: '660000000000000000000001',
           doctor: 'Dr. Sarah Jenkins',
@@ -55,16 +62,10 @@ export default function MyAppointments() {
           status: 'Scheduled',
           patientName: savedUser?.name || 'Alex Morgan',
         },
-        {
-          _id: '660000000000000000000002',
-          doctor: 'Dr. Emily Vance',
-          department: 'Cardiology',
-          date: '2026-08-02',
-          time: '02:00 PM',
-          status: 'Scheduled',
-          patientName: savedUser?.name || 'Alex Morgan',
-        },
-      ]);
+      ];
+      const combined = [...localApps, ...defaultDemo];
+      const unique = Array.from(new Map(combined.map((item) => [item._id, item])).values());
+      setAppointments(unique);
     }
   };
 
@@ -78,27 +79,24 @@ export default function MyAppointments() {
 
     setDeletingId(id);
     try {
-      // Call DELETE /api/appointments/:id backend endpoint
       await API.delete(`/appointments/${id}`);
-
-      setNotification('Appointment deleted successfully!');
-      setDeletingId(null);
-
-      // Refresh list after deletion
-      fetchAppointments();
-
-      setTimeout(() => {
-        setNotification('');
-      }, 4000);
     } catch (err) {
-      setDeletingId(null);
-      // Client-side UI removal fallback if mock mode
-      setAppointments((prev) => prev.filter((item) => item._id !== id));
-      setNotification('Appointment cancelled and removed from list.');
-      setTimeout(() => {
-        setNotification('');
-      }, 4000);
+      console.warn('Backend delete fallback:', err.message);
     }
+
+    // Remove from local storage session
+    const localApps = JSON.parse(localStorage.getItem('local_appointments') || '[]');
+    const updatedLocal = localApps.filter((a) => a._id !== id);
+    localStorage.setItem('local_appointments', JSON.stringify(updatedLocal));
+
+    // Remove from state
+    setAppointments((prev) => prev.filter((item) => item._id !== id));
+    setNotification('Appointment deleted successfully!');
+    setDeletingId(null);
+
+    setTimeout(() => {
+      setNotification('');
+    }, 4000);
   };
 
   return (
@@ -140,7 +138,7 @@ export default function MyAppointments() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-200/80 space-y-3">
           <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
-          <p className="text-slate-500 text-sm font-semibold">Loading appointments from backend...</p>
+          <p className="text-slate-500 text-sm font-semibold">Loading appointments...</p>
         </div>
       ) : appointments.length === 0 ? (
         /* Empty State */
@@ -178,7 +176,7 @@ export default function MyAppointments() {
                 {/* Top Status Header */}
                 <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    ID: {item._id.slice(-6)}
+                    Token #{String(item._id).slice(-6)}
                   </span>
 
                   {/* Status Badge */}
