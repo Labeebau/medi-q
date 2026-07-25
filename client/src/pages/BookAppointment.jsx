@@ -43,7 +43,7 @@ export default function BookAppointment() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Retrieve logged in user from localStorage
+  // Retrieve actual logged in user from localStorage
   const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
   const userId = savedUser?._id || '660000000000000000000000';
 
@@ -51,7 +51,7 @@ export default function BookAppointment() {
   const passedSymptoms = location.state?.symptoms || '';
   const dummyRecommendedDept = location.state?.department || 'Gynecology';
 
-  const [patientName, setPatientName] = useState(savedUser?.name || 'Alex Morgan');
+  const [patientName, setPatientName] = useState(savedUser?.name || 'Guest Patient');
   const [department, setDepartment] = useState(dummyRecommendedDept);
   const [doctorName, setDoctorName] = useState(DEPARTMENT_DOCTORS[dummyRecommendedDept]?.[0] || 'Dr. Priya Sharma (Gynecologist & Obstetrician)');
   const [appointmentDate, setAppointmentDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -61,6 +61,12 @@ export default function BookAppointment() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+    if (savedUser?.name) {
+      setPatientName(savedUser.name);
+    }
+  }, []);
 
   // Update doctor options when department changes
   useEffect(() => {
@@ -85,7 +91,6 @@ export default function BookAppointment() {
     };
 
     try {
-      // Call backend API (POST /api/appointments)
       const res = await bookAppointment(payload);
 
       if (res.success) {

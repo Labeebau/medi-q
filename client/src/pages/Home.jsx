@@ -13,8 +13,9 @@ import {
 } from 'lucide-react';
 
 export default function Home() {
-  // Patient name placeholder
-  const patientName = 'Alex Morgan';
+  // Read actual logged-in user profile from localStorage
+  const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
+  const patientName = savedUser?.name || 'Guest Patient';
 
   return (
     <div className="py-8 space-y-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,7 +29,7 @@ export default function Home() {
 
         <div className="relative z-10 max-w-3xl space-y-6">
           
-          {/* Patient Name Placeholder Badge */}
+          {/* Dynamic Patient Name Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-teal-300 text-xs font-bold border border-white/15 backdrop-blur-md">
             <User className="w-4 h-4 text-teal-400" />
             <span>Patient: {patientName}</span>
