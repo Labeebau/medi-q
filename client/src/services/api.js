@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configure Axios Instance with Base URL
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,9 +16,19 @@ export const login = async (email, password) => {
   return response.data;
 };
 
+export const loginUser = async (credentials) => {
+  const response = await API.post('/auth/login', credentials);
+  return response.data;
+};
+
 // 2. User Registration
 export const register = async (name, email, phone, password) => {
   const response = await API.post('/auth/register', { name, email, phone, password });
+  return response.data;
+};
+
+export const registerUser = async (userData) => {
+  const response = await API.post('/auth/register', userData);
   return response.data;
 };
 
